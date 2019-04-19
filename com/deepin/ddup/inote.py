@@ -2,9 +2,15 @@
 import sys
 import datetime
 import uuid
+import html
 
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5.QtSql import QSqlDatabase, QSqlQueryModel, QSqlQuery
+
+from com.deepin.ddup.review import Review
+
 
 def create_table_and_init():
     db = QSqlDatabase.addDatabase('QSQLITE')
@@ -12,7 +18,7 @@ def create_table_and_init():
     if not db.open():
         return False
     query = QSqlQuery()
-    query.exec("SELECT COUNT(*) FROM SQLITE_MASTER WHERE TYPE = 'table' AND NAME = '%s'" % ('T_KINDS'))
+    query.exec("SELECT COUNT(1) FROM SQLITE_MASTER WHERE TYPE = 'table' AND NAME = '%s'" % ('T_KINDS'))
     if query.next():
         if int(query.value(0)) == 0:
             query.exec("CREATE TABLE T_KINDS(ID TEXT, NAME TEXT)")
@@ -23,7 +29,7 @@ def create_table_and_init():
             query.exec("INSERT INTO T_KINDS VALUES('5','Python')")
             query.exec("INSERT INTO T_KINDS VALUES('6','Sqlite')")
 
-    query.exec("SELECT COUNT(*) FROM SQLITE_MASTER WHERE TYPE = 'table' AND NAME = '%s'" % ('T_TIPS'))
+    query.exec("SELECT COUNT(1) FROM SQLITE_MASTER WHERE TYPE = 'table' AND NAME = '%s'" % ('T_TIPS'))
     if query.next():
         if int(query.value(0)) == 0:
             query.exec("CREATE TABLE T_TIPS(ID TEXT, RELATED_KIND_ID TEXT, TITLE TEXT, CONTENT TEXT, CREATE_TIME TIMESTAMP, REVIEW_TIME TIMESTAMP, REVIEW_COUNT INTEGER)")
@@ -31,8 +37,8 @@ def create_table_and_init():
     return True
 
 class INote(QWidget):
-    def __init__(self):
-        super(INote, self).__init__()
+    def __init__(self, parent=None):
+        super(INote, self).__init__(parent)
 
         self.review_btn = None
         self.manage_btn = None
@@ -64,6 +70,7 @@ class INote(QWidget):
         self.init_ui()
         self.init_data()
 
+        self.review_btn.clicked.connect(self.on_review_btn_clicked)
         self.left_kind_cbx.activated.connect(self.on_left_kind_cbx_activate)
         self.table_view.clicked.connect(self.on_table_view_clicked)
         self.save_btn.clicked.connect(self.on_save_btn_clicked)
@@ -108,6 +115,8 @@ class INote(QWidget):
         self.delete_btn.setText("delete")
 
         self.container = QTextEdit()
+        # self.container.setFontFamily("Consolas")
+        # self.container.setFont(QFont("Consolas", 12))
 
         # left box
         left_mgr_btn_box = QHBoxLayout()
@@ -205,7 +214,7 @@ class INote(QWidget):
             else:
                 self.right_kind_cbx.setCurrentText(kind_cbx_text)
             self.title.setText(query.value(2))
-            self.container.setText(query.value(3))
+            self.container.setPlainText(html.unescape(query.value(3)))
             break
 
     def on_save_btn_clicked(self):
@@ -216,8 +225,9 @@ class INote(QWidget):
         kind_id = self.right_kind_cbx.currentData()
         content = self.container.toPlainText()
         create_time = datetime.datetime.now()
-        sql = "INSERT INTO T_TIPS VALUES ('%s','%s','%s','%s', '%s', '', '0')" % (
-            id, kind_id, title, content, create_time)
+        review_time = create_time + datetime.timedelta(minutes=5)
+        sql = "INSERT INTO T_TIPS VALUES ('%s','%s','%s','%s', '%s', '%s', '0')" % (
+            id, kind_id, title, html.escape(content, quote=True), create_time, review_time)
         print(sql)
         self.db.exec_(sql)
         self.db.commit()
@@ -232,7 +242,7 @@ class INote(QWidget):
         title = self.title.text()
         content = self.container.toPlainText()
         sql = "UPDATE T_TIPS SET RELATED_KIND_ID = '%s', TITLE = '%s', CONTENT = '%s' WHERE ID = '%s'" % (
-            kind_id, title, content, id)
+            kind_id, title, html.escape(content, quote=True), id)
         print(sql)
         self.db.exec_(sql)
         self.db.commit()
@@ -266,10 +276,18 @@ class INote(QWidget):
         self.right_kind_cbx.setCurrentIndex(-1)
         self.container.setText("")
 
+    def on_review_btn_clicked(self):
+        review.setWindowModality(Qt.ApplicationModal)
+        # 每次都重新初始化
+        if(review.exit_completely):
+            review.__init__()
+        review.show()
+        self.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     if create_table_and_init():
         inote = INote()
+        review = Review()
         inote.show()
     sys.exit(app.exec_())
