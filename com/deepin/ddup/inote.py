@@ -278,6 +278,9 @@ class INote(QWidget):
 
     def on_review_btn_clicked(self):
         review.setWindowModality(Qt.ApplicationModal)
+        # 每次都重新初始化
+        if(review.exit_completely):
+            review.__init__()
         review.show()
         self.show()
 
