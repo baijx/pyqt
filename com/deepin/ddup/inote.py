@@ -229,8 +229,9 @@ class INote(QWidget):
         sql = "INSERT INTO T_TIPS VALUES ('%s','%s','%s','%s', '%s', '%s', '0')" % (
             id, kind_id, title, html.escape(content, quote=True), create_time, review_time)
         print(sql)
-        self.db.exec_(sql)
-        self.db.commit()
+        query = QSqlQuery()
+        query.prepare(sql)
+        query.exec()
         self.clear_left_content()
         self.update_table_data()
 
@@ -244,8 +245,9 @@ class INote(QWidget):
         sql = "UPDATE T_TIPS SET RELATED_KIND_ID = '%s', TITLE = '%s', CONTENT = '%s' WHERE ID = '%s'" % (
             kind_id, title, html.escape(content, quote=True), id)
         print(sql)
-        self.db.exec_(sql)
-        self.db.commit()
+        query = QSqlQuery()
+        query.prepare(sql)
+        query.exec()
         self.clear_left_content()
         self.update_table_data()
 
@@ -261,8 +263,9 @@ class INote(QWidget):
         if confirm == QMessageBox.Yes:
             sql = "DELETE FROM T_TIPS WHERE ID = '%s'" % (id)
             print(sql)
-            self.db.exec_(sql)
-            self.db.commit()
+            query = QSqlQuery()
+            query.prepare(sql)
+            query.exec()
             self.clear_left_content()
             self.clear_right_content()
             self.update_table_data()

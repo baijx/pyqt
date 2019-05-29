@@ -6,19 +6,14 @@ import datetime
 from PyQt5 import sip
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
-from PyQt5.QtSql import QSqlDatabase, QSqlQueryModel, QSqlQuery
-#class Review(QDialog):
+from PyQt5.QtSql import QSqlDatabase, QSqlQuery
+
+
 class Review(QWidget):
     def __init__(self, parent=None):
         super(Review, self).__init__(parent)
-        self.init_fields()
-        self.init_db()
-        self.init_ui()
-        self.init_listener()
 
-    def init_fields(self):
-        self.db = None
-
+        # review param
         self.review_id_dict = None
         self.review_total_num = 0
         self.review_pass_num = 0
@@ -51,11 +46,16 @@ class Review(QWidget):
         # complete page
         self.complete_box = None
         self.complete_label = None
-
         self.exit_completely = False
 
+        self.db = None
+
+        self.init_db()
+        self.init_ui()
+        self.init_listener()
+
     def init_db(self):
-        self.db = QSqlDatabase.addDatabase("QSQLITE")
+        self.db = QSqlDatabase.addDatabase('QSQLITE')
         self.db.setDatabaseName('./database.db')
         self.db.open()
 
@@ -66,7 +66,7 @@ class Review(QWidget):
         summary_label.setAlignment(Qt.AlignCenter)
         self.get_reivew_id_dict()
         size = len(self.review_id_dict)
-        if(size > 0):
+        if size > 0:
             summary_label.setText('本轮您有' + str(size) + '个知识点要复习')
             welcome_box.addWidget(summary_label)
             self.start_btn = QPushButton()
@@ -131,19 +131,21 @@ class Review(QWidget):
         self.setLayout(complete_box)
 
     def get_reivew_id_dict(self):
-        self.review_id_dict ={}
+        self.review_id_dict = {}
         query = QSqlQuery()
-        #review_count_sql = "SELECT T.Id FROM T_TIPS T WHERE T.REVIEW_TIME < DATETIME(CURRENT_TIMESTAMP,'LOCALTIME') AND T.ID = 'f8ac57c8-34f2-11e9-92ef-005056c00008'"
+        # review_count_sql = "SELECT T.Id FROM T_TIPS T WHERE T.REVIEW_TIME < DATETIME(CURRENT_TIMESTAMP,'LOCALTIME')
+        # AND T.ID = 'f8ac57c8-34f2-11e9-92ef-005056c00008'"
         review_count_sql = "SELECT T.Id FROM T_TIPS T WHERE T.REVIEW_TIME < DATETIME(CURRENT_TIMESTAMP,'LOCALTIME')"
         query.exec(review_count_sql)
-        while (query.next()):
+        while query.next():
             self.review_id_dict[query.value(0)] = False
 
     def get_review_tip_by_id(self, id):
         query = QSqlQuery()
-        sql = "SELECT T.ID, T.TITLE, K.NAME, T.CONTENT, T.REVIEW_COUNT from T_TIPS T, T_KINDS K WHERE T.RELATED_KIND_ID = K.ID AND T.ID = '%s'" % (id)
+        sql = "SELECT T.ID, T.TITLE, K.NAME, T.CONTENT, T.REVIEW_COUNT from T_TIPS T, T_KINDS K WHERE" \
+              " T.RELATED_KIND_ID = K.ID AND T.ID = '%s'" % id
         query.exec(sql)
-        while (query.next()):
+        while query.next():
             self.review_current_id = query.value(0)
             self.review_current_title = query.value(1)
             self.review_current_kind = query.value(2)
@@ -154,38 +156,33 @@ class Review(QWidget):
         left = None
         right = None
         for i in range(len(dict)):
-            if(i <= cursor and left == None and list(dict.values())[i] == False):
+            if i <= cursor and left is None and list(dict.values())[i] == False:
                 left = list(dict.keys())[i]
-            if(i > cursor and right == None and list(dict.values())[i] == False):
+            if i > cursor and right is None and list(dict.values())[i] == False:
                 right = list(dict.keys())[i]
 
-        if(self.review_cursor + 1 < len(self.review_id_dict)):
+        if self.review_cursor + 1 < len(self.review_id_dict):
             self.review_cursor += 1
         else:
             self.review_cursor = 0
 
-        if(right != None):
-           return right
-        elif(left != None):
+        if right is not None:
+            return right
+        elif left is not None:
             return left
         else:
-           return None
-
+            return None
 
     def init_listener(self):
-        if(self.start_btn):
+        if self.start_btn:
             self.start_btn.clicked.connect(self.on_start_btn_clicked)
-        if(self.exit_btn):
+        if self.exit_btn:
             self.exit_btn.clicked.connect(self.on_exit_btn_clicked)
         pass
 
     def on_start_btn_clicked(self):
         self.delete_welcome_box()
         self.init_review_ui()
-
-        #self.setLayout(self.review_box)
-        #self.setWindowTitle('ireview')
-        #self.resize(800, 600)
 
     def on_exit_btn_clicked(self):
         self.exit_completely = True
@@ -210,7 +207,7 @@ class Review(QWidget):
 
         # 复习下一个
         self.review_pass_num += 1
-        if(self.review_pass_num == len(self.review_id_dict)):
+        if self.review_pass_num == len(self.review_id_dict):
             self.delete_review_box()
             self.init_complete_ui()
         else:
@@ -220,7 +217,6 @@ class Review(QWidget):
             self.yes_btn.hide()
             self.no_btn.hide()
             self.review_tips()
-
 
     def on_no_btn_clicked(self):
         self.container.clear()
@@ -232,12 +228,11 @@ class Review(QWidget):
 
     def review_tips(self):
         self.review_current_id = self.get_next_review_tip_id(self.review_id_dict, self.review_cursor)
-        if(None != self.review_current_id):
+        if self.review_current_id is not None:
             self.get_review_tip_by_id(self.review_current_id)
             self.title_label.setText(self.review_current_kind + ': ' + self.review_current_title)
             progress = str(self.review_pass_num + 1) + '/' + str(len(self.review_id_dict))
             self.progress_label.setText(progress)
-
 
     def delete_welcome_box(self):
         sip.delete(self.start_btn);
@@ -249,6 +244,7 @@ class Review(QWidget):
         self.progress_label.hide()
         self.container.hide()
         sip.delete(self.review_box)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
